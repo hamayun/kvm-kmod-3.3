@@ -1636,41 +1636,69 @@ void kvm_vcpu_block(struct kvm_vcpu *vcpu)
 */
 
 // Block the VCPU and return to SystemC
-// Return 1 means continue running
 int kvm_vcpu_block_systemc(struct kvm_vcpu *vcpu)
 {
-	if (kvm_arch_vcpu_runnable(vcpu)) 
-    {
-		kvm_make_request(KVM_REQ_UNHALT, vcpu);
-		return 1;
-	}
-
-	if (kvm_cpu_has_pending_timer(vcpu))
-		return 1;
-	
-	if (signal_pending(current))
-		return 1;
-
 	vcpu->blocked_for_systemc = 1;
 	vcpu->kvm->systemc_reschedule = 1;
-	return -EAGAIN;
+	vcpu->kvm->systemc_kick_cpu_id = -1;
+	return -99;		// Block myself until someone kicks me
 }
 
-// Unblock VCPU is from SystemC perspective ? 
+// Unblock VCPU is from SystemC perspective
 void kvm_vcpu_unblock_systemc(struct kvm_vcpu *vcpu)
 {
 	vcpu->blocked_for_systemc = 0;
 	vcpu->kvm->systemc_reschedule = 1;
 	vcpu->kvm->systemc_kick_cpu_id = vcpu->vcpu_id;
+
+	switch(vcpu->arch.mp_state) {
+		case KVM_MP_STATE_HALTED:
+			vcpu->arch.mp_state =
+				KVM_MP_STATE_RUNNABLE;
+		case KVM_MP_STATE_RUNNABLE:
+			vcpu->arch.apf.halted = false;
+			break;
+		case KVM_MP_STATE_SIPI_RECEIVED:
+		default:
+			break;
+	}
 }
 
+/*
+int kvm_vcpu_block_systemc(struct kvm_vcpu *vcpu)
+{
+	vcpu->blocked_for_systemc = 1;
+	vcpu->kvm->systemc_reschedule = 1;
+	vcpu->kvm->systemc_kick_cpu_id = -1;
+	return -99;		// Block myself until someone kicks me
+
+
+	if (kvm_arch_vcpu_runnable(vcpu) || 
+	    kvm_cpu_has_pending_timer(vcpu) ||
+	    signal_pending(current))
+    {
+		kvm_make_request(KVM_REQ_UNHALT, vcpu);
+		vcpu->blocked_for_systemc = 0;
+		vcpu->kvm->systemc_reschedule = 0;
+		vcpu->kvm->systemc_kick_cpu_id = -1;
+		return 1;
+	}
+
+	vcpu->blocked_for_systemc = 1;
+	vcpu->kvm->systemc_reschedule = 1;
+	return -EAGAIN;
+}
+*/
+
 // See if the VCPU is unblocked ? 
+/*
 int kvm_vcpu_check_unblocked_systemc(struct kvm_vcpu *vcpu)
 {
 	int ret = -EAGAIN;
 
-	//if (kvm_arch_vcpu_runnable(vcpu))
+	if (kvm_arch_vcpu_runnable(vcpu))
 	{
+		ret = 1;	// Atleast Runnable
 		if (kvm_check_request(KVM_REQ_UNHALT, vcpu))
 		{
 			switch(vcpu->arch.mp_state) {
@@ -1691,7 +1719,7 @@ int kvm_vcpu_check_unblocked_systemc(struct kvm_vcpu *vcpu)
 
 	return ret;
 }
-
+*/
 void kvm_resched(struct kvm_vcpu *vcpu)
 {
 	if (!need_resched())
@@ -1904,28 +1932,42 @@ static long kvm_vcpu_ioctl(struct file *filp,
 	vcpu_load(vcpu);
 	switch (ioctl) {
 	case KVM_RUN:
-	    // printk(KERN_ERR "KVM_RUN: VCPU-%d Entry ...", vcpu->vcpu_id);
-	    // printk(KERN_ERR "KVM_RUN: VCPU-%d Entry ...@KVM = %x", vcpu->vcpu_id, vcpu->kvm);
+		if(vcpu->vcpu_id != 0)
+			printk(KERN_ERR "KVM_RUN: VCPU-%d Entry ...", vcpu->vcpu_id);
 
-		vcpu->blocked_for_systemc = 0;
+		if(vcpu->blocked_for_systemc)
+		{	
+			printk(KERN_ERR "KVM_RUN: VCPU-%d BLOCKED !!!", vcpu->vcpu_id);
+			r = -99;
+			goto out;
+		}
+		
+		// VCPU isn't blocked so go ahead
 		vcpu->kvm->systemc_reschedule = 0;
 		vcpu->kvm->systemc_kick_cpu_id = -1;
-
+		
 		r = -EINVAL;
 		if (arg)
 			goto out;
 		r = kvm_arch_vcpu_ioctl_run(vcpu, vcpu->run);
 		trace_kvm_userspace_exit(vcpu->run->exit_reason, r);
 
+		/*
 		if(vcpu->kvm->systemc_reschedule && vcpu->kvm->systemc_kick_cpu_id >= 0)
 		{
 			if(r == -100 && vcpu->vcpu_id == 1)
-	        	printk(KERN_ERR "KVM_RUN: VCPU-%d Exiting with r = %d; Why ?",
-				vcpu->vcpu_id, r);
+	        	printk(KERN_ERR "KVM_RUN: VCPU-%d Exiting with r = %d; Why ?; exit_reason = %d",
+				vcpu->vcpu_id, r, vcpu->run->exit_reason);
 		}
-	    
-		if(r < -100)
-			printk(KERN_ERR "KVM_RUN: VCPU-%d Exit ... r = %d", vcpu->vcpu_id, r);
+		*/
+
+		//if(r < -100 || vcpu->run->exit_reason == KVM_EXIT_UNKNOWN){
+		//if(vcpu->vcpu_id != 0)
+/*		{
+			printk(KERN_ERR "KVM_RUN: VCPU-%d Exit ... r = %d, exit_reason = %d",
+			vcpu->vcpu_id, r, vcpu->run->exit_reason);
+		} 
+*/
 		break;
 	case KVM_GET_REGS: {
 		struct kvm_regs *kvm_regs;

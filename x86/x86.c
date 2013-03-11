@@ -5362,24 +5362,16 @@ static int __vcpu_run(struct kvm_vcpu *vcpu)
 		printk(KERN_WARNING "MMH: KVM_MP_STATE_RUNNABLE for VCPU %d\n", vcpu->vcpu_id);
 	}
 
-	
-	/*	
-	r = kvm_vcpu_check_unblocked_systemc(vcpu);
-	if(r < 0)
-	    return r;
-	*/
-    
 	vcpu->srcu_idx = srcu_read_lock(&kvm->srcu);
 	vapic_enter(vcpu);
 
 	r = 1;
 	while (r > 0) {
 		if (vcpu->arch.mp_state == KVM_MP_STATE_RUNNABLE &&
-			!vcpu->arch.apf.halted) // && !vcpu->kvm->systemc_reschedule)
+			!vcpu->arch.apf.halted && !vcpu->kvm->systemc_reschedule)
 		{
 			r = vcpu_enter_guest(vcpu);
 
-			/*
 			if(vcpu->kvm->systemc_reschedule &&
 			   vcpu->kvm->systemc_kick_cpu_id == vcpu->vcpu_id)
 			{
@@ -5387,7 +5379,7 @@ static int __vcpu_run(struct kvm_vcpu *vcpu)
 				vcpu->kvm->systemc_reschedule = 0;
 				vcpu->kvm->systemc_kick_cpu_id = -1;
 			}
-			else*/ if (vcpu->kvm->systemc_reschedule)
+			else if (vcpu->kvm->systemc_reschedule)
 			{
 				r = -(100 + vcpu->kvm->systemc_kick_cpu_id);
 				printk(KERN_WARNING "~~~~~~~~~ VCPU-%d Says; Kick CPU-%d, r = %d", 
@@ -5395,33 +5387,29 @@ static int __vcpu_run(struct kvm_vcpu *vcpu)
 				break;
 			}
 		}
+		/*
 		else
 		{
-			r = kvm_vcpu_block_systemc(vcpu);
-			if(r > 0)
-			{
-			/*
 			srcu_read_unlock(&kvm->srcu, vcpu->srcu_idx);
 			kvm_vcpu_block(vcpu);
 			vcpu->srcu_idx = srcu_read_lock(&kvm->srcu);
-			*/
-				if (kvm_check_request(KVM_REQ_UNHALT, vcpu))
-				{
-					switch(vcpu->arch.mp_state) {
-					case KVM_MP_STATE_HALTED:
-						vcpu->arch.mp_state =
-							KVM_MP_STATE_RUNNABLE;
-					case KVM_MP_STATE_RUNNABLE:
-						vcpu->arch.apf.halted = false;
-						break;
-					case KVM_MP_STATE_SIPI_RECEIVED:
-					default:
-						r = -EINTR;
-						break;
-					}
+			if (kvm_check_request(KVM_REQ_UNHALT, vcpu))
+			{
+				switch(vcpu->arch.mp_state) {
+				case KVM_MP_STATE_HALTED:
+					vcpu->arch.mp_state =
+						KVM_MP_STATE_RUNNABLE;
+				case KVM_MP_STATE_RUNNABLE:
+					vcpu->arch.apf.halted = false;
+					break;
+				case KVM_MP_STATE_SIPI_RECEIVED:
+				default:
+					r = -EINTR;
+					break;
 				}
 			}
 		}
+		*/
 
 		if (r <= 0)
 			break;
@@ -5513,10 +5501,9 @@ int kvm_arch_vcpu_ioctl_run(struct kvm_vcpu *vcpu, struct kvm_run *kvm_run)
 		// but instead try to tell SystemC to schedule another VCPU.
 		// All VCPUs are Run sequentially inside the SystemC thread 
 		// (One Host Thread, Multiple SystemC Threads)
-		r = kvm_vcpu_block_systemc(vcpu);
-		clear_bit(KVM_REQ_UNHALT, &vcpu->requests);
 		//printk(KERN_WARNING "MMH: KVM_MP_STATE_UNINITIALIZED for VCPU-%d, r = %d\n",
 		//	   (u32)vcpu->vcpu_id, r);
+		r = kvm_vcpu_block_systemc(vcpu);
 		goto out;
 	}
 
