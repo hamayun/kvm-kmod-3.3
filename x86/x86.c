@@ -5372,20 +5372,29 @@ static int __vcpu_run(struct kvm_vcpu *vcpu)
 		{
 			r = vcpu_enter_guest(vcpu);
 
-			if(vcpu->kvm->systemc_reschedule &&
-			   vcpu->kvm->systemc_kick_cpu_id == vcpu->vcpu_id)
+			if(vcpu->kvm->systemc_reschedule)
 			{
-				printk(KERN_WARNING "Avoid Self KICK VCPU-%d", vcpu->vcpu_id);
-				vcpu->kvm->systemc_reschedule = 0;
-				vcpu->kvm->systemc_kick_cpu_id = -1;
+				if(vcpu->kvm->systemc_kick_cpu_id == vcpu->vcpu_id)
+				{
+					printk(KERN_WARNING "Avoid Self KICK VCPU-%d", vcpu->vcpu_id);
+					vcpu->kvm->systemc_reschedule = 0;
+					vcpu->kvm->systemc_kick_cpu_id = -1;
+				}
+				else if (vcpu->kvm->systemc_reschedule)
+				{
+					r = -(100 + vcpu->kvm->systemc_kick_cpu_id);
+					printk(KERN_WARNING "~~~~~~~~~ VCPU-%d Says; Kick CPU-%d, r = %d", 
+					   	   vcpu->vcpu_id, vcpu->kvm->systemc_kick_cpu_id, r);
+					break;
+				}
 			}
-			else if (vcpu->kvm->systemc_reschedule)
-			{
-				r = -(100 + vcpu->kvm->systemc_kick_cpu_id);
-				printk(KERN_WARNING "~~~~~~~~~ VCPU-%d Says; Kick CPU-%d, r = %d", 
-				   	   vcpu->vcpu_id, vcpu->kvm->systemc_kick_cpu_id, r);
-				break;
-			}
+		}
+		else
+		{
+			printk(KERN_WARNING "VCPU-%d, mpstate = %d, halted = %d, sched = %d, r = %d",
+				    vcpu->vcpu_id, vcpu->arch.mp_state, vcpu->arch.apf.halted, 
+					vcpu->kvm->systemc_reschedule, r); 
+			r = kvm_vcpu_block_systemc(vcpu);
 		}
 		/*
 		else
