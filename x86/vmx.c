@@ -2714,6 +2714,18 @@ static __init int hardware_setup(void)
 	if (nested)
 		nested_vmx_setup_ctls_msrs();
 
+	printk(KERN_WARNING "================================================================================");
+    printk(KERN_WARNING "MMH@vmx.c: Hardware Setup; enable_vpid = %d, enable_ept = %d, enable_unrestricted_guest = %d\n",
+           enable_vpid, enable_ept, enable_unrestricted_guest);
+
+#if 1 
+	enable_vpid = 0;
+	enable_ept = 0;
+	enable_unrestricted_guest = 0;
+	printk(KERN_WARNING "MMH@vmx.c: KVM HACKED; EPT Disabled by Force\n");
+	printk(KERN_WARNING "================================================================================\n");
+#endif
+
 	return alloc_kvm_area();
 }
 
