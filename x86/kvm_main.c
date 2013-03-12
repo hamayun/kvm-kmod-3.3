@@ -1936,13 +1936,6 @@ static long kvm_vcpu_ioctl(struct file *filp,
 		//printk(KERN_ERR "KVM_RUN: VCPU-%d Entry ... mpstate = %d",
 		//       vcpu->vcpu_id, vcpu->arch.mp_state);
 
-		if(vcpu->blocked_for_systemc)
-		{	
-			r = -98;
-			printk(KERN_ERR "KVM_RUN: VCPU-%d BLOCKED !!! r = %d", vcpu->vcpu_id, r);
-			goto out;
-		}
-		
 		// VCPU isn't blocked so go ahead
 		vcpu->kvm->systemc_reschedule = 0;
 		vcpu->kvm->systemc_kick_cpu_id = -1;
@@ -1953,31 +1946,8 @@ static long kvm_vcpu_ioctl(struct file *filp,
 		r = kvm_arch_vcpu_ioctl_run(vcpu, vcpu->run);
 		trace_kvm_userspace_exit(vcpu->run->exit_reason, r);
 
-		if(vcpu->kvm->systemc_kick_cpu_id != -1 && r < -100)
-		{
-			printk(KERN_ERR "KVM_RUN: VCPU-%d Exit ... I should sleep now, r = %d", vcpu->vcpu_id, r);
-			vcpu->blocked_for_systemc = 1;
-		}
-
 		//printk(KERN_ERR "KVM_RUN: VCPU-%d Exit ... r = %d, exit_reason = %d",
 		//	   vcpu->vcpu_id, r, vcpu->run->exit_reason);
-
-		/*
-		if(vcpu->kvm->systemc_reschedule && vcpu->kvm->systemc_kick_cpu_id >= 0)
-		{
-			if(r == -100 && vcpu->vcpu_id == 1)
-	        	printk(KERN_ERR "KVM_RUN: VCPU-%d Exiting with r = %d; Why ?; exit_reason = %d",
-				vcpu->vcpu_id, r, vcpu->run->exit_reason);
-		}
-		*/
-
-		//if(r < -100 || vcpu->run->exit_reason == KVM_EXIT_UNKNOWN){
-		//if(vcpu->vcpu_id != 0)
-/*		{
-			printk(KERN_ERR "KVM_RUN: VCPU-%d Exit ... r = %d, exit_reason = %d",
-			vcpu->vcpu_id, r, vcpu->run->exit_reason);
-		} 
-*/
 		break;
 
 	case KVM_RUN_STATE: {

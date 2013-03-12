@@ -450,7 +450,7 @@ static int __apic_accept_irq(struct kvm_lapic *apic, int delivery_mode,
 
 		kvm_make_request(KVM_REQ_EVENT, vcpu);
 		printk(KERN_WARNING "KICK REQUEST for VCPU-%d, %s:%d\n", vcpu->vcpu_id, __func__,__LINE__);
-		kvm_vcpu_kick(vcpu);		// MMH: its this kick which seems problematic
+		kvm_vcpu_kick(vcpu);
 		break;
 
 	case APIC_DM_REMRD:
@@ -474,7 +474,7 @@ static int __apic_accept_irq(struct kvm_lapic *apic, int delivery_mode,
 			vcpu->arch.mp_state = KVM_MP_STATE_INIT_RECEIVED;
 			kvm_make_request(KVM_REQ_EVENT, vcpu);
 			printk(KERN_WARNING "KICK REQUEST for VCPU-%d, %s:%d\n", vcpu->vcpu_id, __func__,__LINE__);
-			kvm_vcpu_kick(vcpu);
+			//kvm_vcpu_kick(vcpu);		// MMH: This KICK causes some problems.
 		} else {
 			apic_debug("Ignoring de-assert INIT to vcpu %d\n",
 				   vcpu->vcpu_id);
