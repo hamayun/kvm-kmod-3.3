@@ -798,6 +798,9 @@ struct kvm_clock_data {
 /* Available with KVM_CAP_RMA */
 #define KVM_ALLOCATE_RMA	  _IOR(KVMIO,  0xa9, struct kvm_allocate_rma)
 
+/* MMH: Set/Get VCPU Run State from SystemC */
+#define KVM_RUN_STATE    	  _IOW(KVMIO,  0xaa, struct kvm_run_state)
+
 #define KVM_DEV_ASSIGN_ENABLE_IOMMU	(1 << 0)
 
 struct kvm_assigned_pci_dev {

@@ -355,4 +355,9 @@ struct kvm_xcrs {
 	__u64 padding[16];
 };
 
+/* MMH: For GET/SET VCPU State; w.r.t SystemC */
+struct kvm_run_state {
+	__u32 run_state;
+};
+
 #endif /* _ASM_X86_KVM_H */

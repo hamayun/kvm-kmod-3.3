@@ -1934,12 +1934,12 @@ static long kvm_vcpu_ioctl(struct file *filp,
 	case KVM_RUN:
 		//if(vcpu->vcpu_id != 0)
 		//printk(KERN_ERR "KVM_RUN: VCPU-%d Entry ... mpstate = %d",
-		//	    vcpu->vcpu_id, vcpu->arch.mp_state);
+		//       vcpu->vcpu_id, vcpu->arch.mp_state);
 
 		if(vcpu->blocked_for_systemc)
 		{	
-			printk(KERN_ERR "KVM_RUN: VCPU-%d BLOCKED !!!", vcpu->vcpu_id);
-			r = -99;
+			r = -98;
+			printk(KERN_ERR "KVM_RUN: VCPU-%d BLOCKED !!! r = %d", vcpu->vcpu_id, r);
 			goto out;
 		}
 		
@@ -1952,6 +1952,12 @@ static long kvm_vcpu_ioctl(struct file *filp,
 			goto out;
 		r = kvm_arch_vcpu_ioctl_run(vcpu, vcpu->run);
 		trace_kvm_userspace_exit(vcpu->run->exit_reason, r);
+
+		if(vcpu->kvm->systemc_kick_cpu_id != -1 && r < -100)
+		{
+			printk(KERN_ERR "KVM_RUN: VCPU-%d Exit ... I should sleep now, r = %d", vcpu->vcpu_id, r);
+			vcpu->blocked_for_systemc = 1;
+		}
 
 		//printk(KERN_ERR "KVM_RUN: VCPU-%d Exit ... r = %d, exit_reason = %d",
 		//	   vcpu->vcpu_id, r, vcpu->run->exit_reason);
@@ -1973,6 +1979,19 @@ static long kvm_vcpu_ioctl(struct file *filp,
 		} 
 */
 		break;
+
+	case KVM_RUN_STATE: {
+		struct kvm_run_state run_state;
+
+		r = -EFAULT;
+		if (copy_from_user(&run_state, argp, sizeof run_state))
+			goto out;
+
+		printk(KERN_ERR "KVM_RUN_STATE: VCPU-%d Called run_state = %d\n", vcpu->vcpu_id, run_state.run_state);
+		vcpu->blocked_for_systemc = run_state.run_state;
+		r = 0;
+		break;
+	}
 	case KVM_GET_REGS: {
 		struct kvm_regs *kvm_regs;
 
