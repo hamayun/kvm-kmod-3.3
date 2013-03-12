@@ -1953,8 +1953,9 @@ static long kvm_vcpu_ioctl(struct file *filp,
 		r = kvm_arch_vcpu_ioctl_run(vcpu, vcpu->run);
 		trace_kvm_userspace_exit(vcpu->run->exit_reason, r);
 
-		printk(KERN_ERR "KVM_RUN: VCPU-%d Exit ... r = %d, exit_reason = %d",
-			   vcpu->vcpu_id, r, vcpu->run->exit_reason);
+		//printk(KERN_ERR "KVM_RUN: VCPU-%d Exit ... r = %d, exit_reason = %d",
+		//	   vcpu->vcpu_id, r, vcpu->run->exit_reason);
+
 		/*
 		if(vcpu->kvm->systemc_reschedule && vcpu->kvm->systemc_kick_cpu_id >= 0)
 		{
