@@ -5370,7 +5370,14 @@ static int __vcpu_run(struct kvm_vcpu *vcpu)
 		if (vcpu->arch.mp_state == KVM_MP_STATE_RUNNABLE &&
 			!vcpu->arch.apf.halted && !vcpu->kvm->systemc_reschedule)
 		{
+			//if(vcpu->vcpu_id == 1)
+			//	printk(KERN_WARNING "VCPU-%d Calling vcpu_enter_guest()", vcpu->vcpu_id);
+
 			r = vcpu_enter_guest(vcpu);
+
+			//if(vcpu->vcpu_id == 1)
+			//	printk(KERN_WARNING "VCPU-%d Return vcpu_enter_guest(); r = %d",
+			//		   vcpu->vcpu_id, r);
 
 			if(vcpu->kvm->systemc_reschedule)
 			{
@@ -6276,18 +6283,21 @@ void kvm_vcpu_kick(struct kvm_vcpu *vcpu)
 	kvm_vcpu_unblock_systemc(vcpu);
 
 	if (waitqueue_active(&vcpu->wq)) {
-		printk(KERN_WARNING "MMH: $$$$ Whats Happening Here @waitqueue_active $$$$ vcpu-%d\n", vcpu->vcpu_id);
+		printk(KERN_WARNING "MMH: $$$$ @waitqueue_active $$$$ vcpu-%d\n",
+			   vcpu->vcpu_id);
 		wake_up_interruptible(&vcpu->wq);
 		++vcpu->stat.halt_wakeup;
 	}
 
 	me = get_cpu();
 	if (cpu != me && (unsigned)cpu < nr_cpu_ids && cpu_online(cpu)){
-		printk(KERN_WARNING "MMH: $$$$ Whats Happening Here @kvm_vcpu_exiting_guest_mode $$$$ cpu = %d, vcpu-%d\n", cpu, vcpu->vcpu_id);
+		printk(KERN_WARNING "MMH: $$$$ @kvm_vcpu_exiting_guest_mode $$$$ cpu = %d, vcpu-%d\n",
+			   cpu, vcpu->vcpu_id);
 
 		if (kvm_vcpu_exiting_guest_mode(vcpu) == IN_GUEST_MODE)
 		{
-			printk(KERN_WARNING "MMH: $$$$ kvm_smp_send_reschedule $$$$ cpu = %d, vcpu-%d\n", cpu, vcpu->vcpu_id);
+			printk(KERN_WARNING "MMH: $$$$ kvm_smp_send_reschedule $$$$ cpu = %d, vcpu-%d\n",
+				   cpu, vcpu->vcpu_id);
 			kvm_smp_send_reschedule(cpu);
 		}
 	}
