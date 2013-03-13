@@ -5371,7 +5371,7 @@ static int __vcpu_run(struct kvm_vcpu *vcpu)
 			!vcpu->arch.apf.halted && !vcpu->kvm->systemc_reschedule)
 		{
 			//if(vcpu->vcpu_id == 1)
-			//	printk(KERN_WARNING "VCPU-%d Calling vcpu_enter_guest()", vcpu->vcpu_id);
+			//printk(KERN_WARNING "VCPU-%d Calling vcpu_enter_guest()", vcpu->vcpu_id);
 
 			r = vcpu_enter_guest(vcpu);
 
