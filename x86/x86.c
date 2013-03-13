@@ -6275,7 +6275,6 @@ void kvm_vcpu_kick(struct kvm_vcpu *vcpu)
 
 	kvm_vcpu_unblock_systemc(vcpu);
 
-	/*
 	if (waitqueue_active(&vcpu->wq)) {
 		printk(KERN_WARNING "MMH: $$$$ Whats Happening Here @waitqueue_active $$$$ vcpu-%d\n", vcpu->vcpu_id);
 		wake_up_interruptible(&vcpu->wq);
@@ -6293,7 +6292,6 @@ void kvm_vcpu_kick(struct kvm_vcpu *vcpu)
 		}
 	}
 	put_cpu();
-	*/
 }
 
 int kvm_arch_interrupt_allowed(struct kvm_vcpu *vcpu)

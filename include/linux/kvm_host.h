@@ -192,9 +192,6 @@ struct kvm_vcpu {
 #endif
 
 	struct kvm_vcpu_arch arch;
-
-	/* MMH: SystemC Specific Variables */
-	int blocked_for_systemc;
 };
 
 static inline int kvm_vcpu_exiting_guest_mode(struct kvm_vcpu *vcpu)
