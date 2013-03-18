@@ -4372,7 +4372,11 @@ static int handle_exception(struct kvm_vcpu *vcpu)
 static int handle_external_interrupt(struct kvm_vcpu *vcpu)
 {
 	++vcpu->stat.irq_exits;
+	//printk(KERN_WARNING "MMH: CPU-%d: An External Interrupt!!!", vcpu->vcpu_id);
 	return 1;
+	// MMH: Returning Zero here causes the simulation to continue but
+	// Results are not acceptable as we get a lot of decoding errors.
+	// return 0;
 }
 
 static int handle_triple_fault(struct kvm_vcpu *vcpu)
@@ -5991,7 +5995,15 @@ static int vmx_handle_exit(struct kvm_vcpu *vcpu)
 
 	if (exit_reason < kvm_vmx_max_exit_handlers
 	    && kvm_vmx_exit_handlers[exit_reason])
-		return kvm_vmx_exit_handlers[exit_reason](vcpu);
+	{
+		int r = kvm_vmx_exit_handlers[exit_reason](vcpu);
+		/*	
+		if(r == 1 && vcpu->vcpu_id == 1)
+			printk(KERN_WARNING "VCPU-%d exit_reason = %d", 
+                vcpu->vcpu_id, exit_reason);
+		*/
+		return r;
+	}
 	else {
 		vcpu->run->exit_reason = KVM_EXIT_UNKNOWN;
 		vcpu->run->hw.hardware_exit_reason = exit_reason;

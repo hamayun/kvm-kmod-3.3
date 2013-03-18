@@ -262,6 +262,7 @@ int kvm_vcpu_init(struct kvm_vcpu *vcpu, struct kvm *kvm, unsigned id)
 	vcpu->kvm = kvm;
 	vcpu->vcpu_id = id;
 	vcpu->pid = NULL;
+
 	init_waitqueue_head(&vcpu->wq);
 	kvm_async_pf_vcpu_init(vcpu);
 
@@ -1607,6 +1608,8 @@ void mark_page_dirty(struct kvm *kvm, gfn_t gfn)
 /*
  * The vCPU has executed a HLT instruction with in-kernel mode enabled.
  */
+
+/*
 void kvm_vcpu_block(struct kvm_vcpu *vcpu)
 {
 	DEFINE_WAIT(wait);
@@ -1627,6 +1630,34 @@ void kvm_vcpu_block(struct kvm_vcpu *vcpu)
 	}
 
 	finish_wait(&vcpu->wq, &wait);
+}
+*/
+
+// Block the VCPU and return to SystemC
+int kvm_vcpu_block_systemc(struct kvm_vcpu *vcpu)
+{
+	vcpu->kvm->systemc_reschedule = 1;
+	vcpu->kvm->systemc_kick_cpu_id = -1;
+	return -99;		// Block myself until someone kicks me
+}
+
+// Unblock VCPU is from SystemC perspective
+void kvm_vcpu_unblock_systemc(struct kvm_vcpu *vcpu)
+{
+	vcpu->kvm->systemc_reschedule = 1;
+	vcpu->kvm->systemc_kick_cpu_id = vcpu->vcpu_id;
+
+	switch(vcpu->arch.mp_state) {
+		case KVM_MP_STATE_HALTED:
+			vcpu->arch.mp_state =
+				KVM_MP_STATE_RUNNABLE;
+		case KVM_MP_STATE_RUNNABLE:
+			vcpu->arch.apf.halted = false;
+			break;
+		case KVM_MP_STATE_SIPI_RECEIVED:
+		default:
+			break;
+	}
 }
 
 void kvm_resched(struct kvm_vcpu *vcpu)
@@ -1841,12 +1872,36 @@ static long kvm_vcpu_ioctl(struct file *filp,
 	vcpu_load(vcpu);
 	switch (ioctl) {
 	case KVM_RUN:
+		//if(vcpu->vcpu_id != 0)
+		//printk(KERN_ERR "KVM_RUN: VCPU-%d Entry ... mpstate = %d",
+		//       vcpu->vcpu_id, vcpu->arch.mp_state);
+
+		// If we are here then SystemC wants to execute this VCPU 
+		vcpu->kvm->systemc_reschedule = 0;
+		vcpu->kvm->systemc_kick_cpu_id = -1;
+		
 		r = -EINVAL;
 		if (arg)
 			goto out;
 		r = kvm_arch_vcpu_ioctl_run(vcpu, vcpu->run);
 		trace_kvm_userspace_exit(vcpu->run->exit_reason, r);
+
+		//printk(KERN_ERR "KVM_RUN: VCPU-%d Exit ... r = %d, exit_reason = %d",
+		//	   vcpu->vcpu_id, r, vcpu->run->exit_reason);
 		break;
+
+	case KVM_RUN_STATE: {
+		struct kvm_run_state run_state;
+
+		r = -EFAULT;
+		if (copy_from_user(&run_state, argp, sizeof run_state))
+			goto out;
+
+		printk(KERN_ERR "KVM_RUN_STATE: VCPU-%d Called run_state = %d\n", vcpu->vcpu_id, run_state.run_state);
+		// We do nothing here; Simply return and tell SystemC its OK.
+		r = 0;
+		break;
+	}
 	case KVM_GET_REGS: {
 		struct kvm_regs *kvm_regs;
 

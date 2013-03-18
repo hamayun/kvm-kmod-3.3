@@ -327,6 +327,10 @@ struct kvm {
 	long mmu_notifier_count;
 #endif
 	long tlbs_dirty;
+
+	// MMH: Some variables for SystemC
+	int systemc_reschedule;				/* When set we quit to SystemC */ 
+	int systemc_kick_cpu_id;			/* Which CPU should be Kicked by SystemC ? */
 };
 
 /* The guest did something we don't support. */
@@ -471,7 +475,11 @@ void mark_page_dirty(struct kvm *kvm, gfn_t gfn);
 void mark_page_dirty_in_slot(struct kvm *kvm, struct kvm_memory_slot *memslot,
 			     gfn_t gfn);
 
-void kvm_vcpu_block(struct kvm_vcpu *vcpu);
+//void kvm_vcpu_block(struct kvm_vcpu *vcpu);
+int kvm_vcpu_block_systemc(struct kvm_vcpu *vcpu);
+void kvm_vcpu_unblock_systemc(struct kvm_vcpu *vcpu);
+int kvm_vcpu_check_unblocked_systemc(struct kvm_vcpu *vcpu);
+
 void kvm_vcpu_on_spin(struct kvm_vcpu *vcpu);
 void kvm_resched(struct kvm_vcpu *vcpu);
 void kvm_load_guest_fpu(struct kvm_vcpu *vcpu);

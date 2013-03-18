@@ -449,6 +449,7 @@ static int __apic_accept_irq(struct kvm_lapic *apic, int delivery_mode,
 		}
 
 		kvm_make_request(KVM_REQ_EVENT, vcpu);
+		//printk(KERN_WARNING "KICK REQUEST for VCPU-%d, %s:%d\n", vcpu->vcpu_id, __func__,__LINE__);
 		kvm_vcpu_kick(vcpu);
 		break;
 
@@ -463,6 +464,7 @@ static int __apic_accept_irq(struct kvm_lapic *apic, int delivery_mode,
 	case APIC_DM_NMI:
 		result = 1;
 		kvm_inject_nmi(vcpu);
+		//printk(KERN_WARNING "KICK REQUEST for VCPU-%d, %s:%d\n", vcpu->vcpu_id, __func__,__LINE__);
 		kvm_vcpu_kick(vcpu);
 		break;
 
@@ -471,7 +473,8 @@ static int __apic_accept_irq(struct kvm_lapic *apic, int delivery_mode,
 			result = 1;
 			vcpu->arch.mp_state = KVM_MP_STATE_INIT_RECEIVED;
 			kvm_make_request(KVM_REQ_EVENT, vcpu);
-			kvm_vcpu_kick(vcpu);
+			//printk(KERN_WARNING "KICK REQUEST for VCPU-%d, %s:%d\n", vcpu->vcpu_id, __func__,__LINE__);
+			kvm_vcpu_kick(vcpu);		// MMH: This Kick was previously problematic; Now its fine; Tested with 10 CPUs
 		} else {
 			apic_debug("Ignoring de-assert INIT to vcpu %d\n",
 				   vcpu->vcpu_id);
@@ -486,6 +489,7 @@ static int __apic_accept_irq(struct kvm_lapic *apic, int delivery_mode,
 			vcpu->arch.sipi_vector = vector;
 			vcpu->arch.mp_state = KVM_MP_STATE_SIPI_RECEIVED;
 			kvm_make_request(KVM_REQ_EVENT, vcpu);
+			//printk(KERN_WARNING "KICK REQUEST for VCPU-%d, %s:%d\n", vcpu->vcpu_id, __func__,__LINE__);
 			kvm_vcpu_kick(vcpu);
 		}
 		break;
@@ -559,6 +563,9 @@ static void apic_send_ipi(struct kvm_lapic *apic)
 		   icr_high, icr_low, irq.shorthand, irq.dest_id,
 		   irq.trig_mode, irq.level, irq.dest_mode, irq.delivery_mode,
 		   irq.vector);
+
+	// printk(KERN_WARNING "MMH: #### Send IPI to vcpu-%d\n", irq.dest_id);
+	apic->vcpu->kvm->systemc_kick_cpu_id = irq.dest_id;
 
 	kvm_irq_delivery_to_apic(apic->vcpu->kvm, apic, &irq);
 }
@@ -861,6 +868,7 @@ static int apic_reg_write(struct kvm_lapic *apic, u32 reg, u32 val)
 		/* No delay here, so we always clear the pending bit */
 		apic_set_reg(apic, APIC_ICR, val & ~(1 << 12));
 		apic_send_ipi(apic);
+		apic->vcpu->kvm->systemc_reschedule = 1;
 		break;
 
 	case APIC_ICR2:
