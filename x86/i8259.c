@@ -102,7 +102,7 @@ static void pic_unlock(struct kvm_pic *s)
 			return;
 
 		kvm_make_request(KVM_REQ_EVENT, found);
-		printk(KERN_WARNING "KICK REQUEST for VCPU-%d, %s:%d\n", found->vcpu_id, __func__,__LINE__);
+		// printk(KERN_WARNING "KICK REQUEST for VCPU-%d, %s:%d\n", found->vcpu_id, __func__,__LINE__);
 		kvm_vcpu_kick(found);
 	}
 }

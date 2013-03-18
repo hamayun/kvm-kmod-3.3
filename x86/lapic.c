@@ -449,7 +449,7 @@ static int __apic_accept_irq(struct kvm_lapic *apic, int delivery_mode,
 		}
 
 		kvm_make_request(KVM_REQ_EVENT, vcpu);
-		printk(KERN_WARNING "KICK REQUEST for VCPU-%d, %s:%d\n", vcpu->vcpu_id, __func__,__LINE__);
+		//printk(KERN_WARNING "KICK REQUEST for VCPU-%d, %s:%d\n", vcpu->vcpu_id, __func__,__LINE__);
 		kvm_vcpu_kick(vcpu);
 		break;
 
@@ -464,7 +464,7 @@ static int __apic_accept_irq(struct kvm_lapic *apic, int delivery_mode,
 	case APIC_DM_NMI:
 		result = 1;
 		kvm_inject_nmi(vcpu);
-		printk(KERN_WARNING "KICK REQUEST for VCPU-%d, %s:%d\n", vcpu->vcpu_id, __func__,__LINE__);
+		//printk(KERN_WARNING "KICK REQUEST for VCPU-%d, %s:%d\n", vcpu->vcpu_id, __func__,__LINE__);
 		kvm_vcpu_kick(vcpu);
 		break;
 
@@ -473,8 +473,8 @@ static int __apic_accept_irq(struct kvm_lapic *apic, int delivery_mode,
 			result = 1;
 			vcpu->arch.mp_state = KVM_MP_STATE_INIT_RECEIVED;
 			kvm_make_request(KVM_REQ_EVENT, vcpu);
-			printk(KERN_WARNING "KICK REQUEST for VCPU-%d, %s:%d\n", vcpu->vcpu_id, __func__,__LINE__);
-			//kvm_vcpu_kick(vcpu);		// MMH: This KICK causes some problems.
+			//printk(KERN_WARNING "KICK REQUEST for VCPU-%d, %s:%d\n", vcpu->vcpu_id, __func__,__LINE__);
+			kvm_vcpu_kick(vcpu);		// MMH: This Kick was previously problematic; Now its fine; Tested with 10 CPUs
 		} else {
 			apic_debug("Ignoring de-assert INIT to vcpu %d\n",
 				   vcpu->vcpu_id);
@@ -489,7 +489,7 @@ static int __apic_accept_irq(struct kvm_lapic *apic, int delivery_mode,
 			vcpu->arch.sipi_vector = vector;
 			vcpu->arch.mp_state = KVM_MP_STATE_SIPI_RECEIVED;
 			kvm_make_request(KVM_REQ_EVENT, vcpu);
-			printk(KERN_WARNING "KICK REQUEST for VCPU-%d, %s:%d\n", vcpu->vcpu_id, __func__,__LINE__);
+			//printk(KERN_WARNING "KICK REQUEST for VCPU-%d, %s:%d\n", vcpu->vcpu_id, __func__,__LINE__);
 			kvm_vcpu_kick(vcpu);
 		}
 		break;

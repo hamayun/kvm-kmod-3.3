@@ -5359,7 +5359,7 @@ static int __vcpu_run(struct kvm_vcpu *vcpu)
 		if (r)
 			return r;
 		vcpu->arch.mp_state = KVM_MP_STATE_RUNNABLE;
-		printk(KERN_WARNING "MMH: KVM_MP_STATE_RUNNABLE for VCPU %d\n", vcpu->vcpu_id);
+		//printk(KERN_WARNING "MMH: KVM_MP_STATE_RUNNABLE for VCPU %d\n", vcpu->vcpu_id);
 	}
 
 	vcpu->srcu_idx = srcu_read_lock(&kvm->srcu);
@@ -5378,29 +5378,23 @@ static int __vcpu_run(struct kvm_vcpu *vcpu)
 			//if(vcpu->vcpu_id == 1)
 			//	printk(KERN_WARNING "VCPU-%d Return vcpu_enter_guest(); r = %d",
 			//		   vcpu->vcpu_id, r);
-
-			if(vcpu->kvm->systemc_reschedule)
-			{
-				if(vcpu->kvm->systemc_kick_cpu_id == vcpu->vcpu_id)
-				{
-					printk(KERN_WARNING "Avoid Self KICK VCPU-%d", vcpu->vcpu_id);
-					vcpu->kvm->systemc_reschedule = 0;
-					vcpu->kvm->systemc_kick_cpu_id = -1;
-				}
-				else if (vcpu->kvm->systemc_reschedule)
-				{
-					r = -(100 + vcpu->kvm->systemc_kick_cpu_id);
-					printk(KERN_WARNING "~~~~~~~~~ VCPU-%d Says; Kick CPU-%d, r = %d", 
-					   	   vcpu->vcpu_id, vcpu->kvm->systemc_kick_cpu_id, r);
-					break;
-				}
-			}
 		}
 		else
 		{
-			printk(KERN_WARNING "VCPU-%d, mpstate = %d, halted = %d, sched = %d, r = %d",
-				    vcpu->vcpu_id, vcpu->arch.mp_state, vcpu->arch.apf.halted, 
-					vcpu->kvm->systemc_reschedule, r); 
+			if(vcpu->kvm->systemc_reschedule &&
+			  (vcpu->kvm->systemc_kick_cpu_id != vcpu->vcpu_id) &&
+			  (vcpu->kvm->systemc_kick_cpu_id != -1))
+			{
+				r = -(100 + vcpu->kvm->systemc_kick_cpu_id);	// MMH: Return the -(VCPU + 100) as an Error Code
+				// printk(KERN_WARNING "~~~~~~~~~ VCPU-%d Says; Kick CPU-%d, r = %d", 
+				//   	   vcpu->vcpu_id, vcpu->kvm->systemc_kick_cpu_id, r);
+				break;
+			}
+
+			//printk(KERN_WARNING "VCPU-%d, mpstate = %d, halted = %d, sched = %d, r = %d",
+			//	    vcpu->vcpu_id, vcpu->arch.mp_state, vcpu->arch.apf.halted, 
+			//		vcpu->kvm->systemc_reschedule, r); 
+			// MMH: Coming here means that the current VCPU has executed a Halt Instruction.
 			r = kvm_vcpu_block_systemc(vcpu);
 		}
 		/*
@@ -6283,21 +6277,21 @@ void kvm_vcpu_kick(struct kvm_vcpu *vcpu)
 	kvm_vcpu_unblock_systemc(vcpu);
 
 	if (waitqueue_active(&vcpu->wq)) {
-		printk(KERN_WARNING "MMH: $$$$ @waitqueue_active $$$$ vcpu-%d\n",
-			   vcpu->vcpu_id);
+		//printk(KERN_WARNING "MMH: $$$$ @waitqueue_active $$$$ vcpu-%d\n",
+		//	   vcpu->vcpu_id);
 		wake_up_interruptible(&vcpu->wq);
 		++vcpu->stat.halt_wakeup;
 	}
 
 	me = get_cpu();
 	if (cpu != me && (unsigned)cpu < nr_cpu_ids && cpu_online(cpu)){
-		printk(KERN_WARNING "MMH: $$$$ @kvm_vcpu_exiting_guest_mode $$$$ cpu = %d, vcpu-%d\n",
-			   cpu, vcpu->vcpu_id);
+		//printk(KERN_WARNING "MMH: $$$$ @kvm_vcpu_exiting_guest_mode $$$$ cpu = %d, vcpu-%d\n",
+		//	   cpu, vcpu->vcpu_id);
 
 		if (kvm_vcpu_exiting_guest_mode(vcpu) == IN_GUEST_MODE)
 		{
-			printk(KERN_WARNING "MMH: $$$$ kvm_smp_send_reschedule $$$$ cpu = %d, vcpu-%d\n",
-				   cpu, vcpu->vcpu_id);
+			//printk(KERN_WARNING "MMH: $$$$ kvm_smp_send_reschedule $$$$ cpu = %d, vcpu-%d\n",
+			//	   cpu, vcpu->vcpu_id);
 			kvm_smp_send_reschedule(cpu);
 		}
 	}
